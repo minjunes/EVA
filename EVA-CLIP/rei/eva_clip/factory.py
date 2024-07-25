@@ -95,9 +95,12 @@ def load_state_dict(checkpoint_path: str, map_location: str='cpu', model_key: st
             state_dict = {k[7:]: v for k, v in state_dict.items()}
     
     for k in skip_list:
-        if k in list(state_dict.keys()):
-            logging.info(f"Removing key {k} from pretrained checkpoint")
-            del state_dict[k]
+        for s_k in state_dict:
+            print(s_k, k)
+            if k in s_k:
+                print(f"Removing key {s_k} from pretrained checkpoint")
+                del state_dict[s_k]
+    input()
 
     if os.getenv('RoPE') == '1':
         for k in list(state_dict.keys()):
@@ -107,8 +110,8 @@ def load_state_dict(checkpoint_path: str, map_location: str='cpu', model_key: st
 
 
 
-def load_checkpoint(model, checkpoint_path, model_key="model|module|state_dict", strict=True):
-    state_dict = load_state_dict(checkpoint_path, model_key=model_key, is_openai=False)
+def load_checkpoint(model, checkpoint_path, model_key="model|module|state_dict", strict=True, skip_list=[]):
+    state_dict = load_state_dict(checkpoint_path, model_key=model_key, is_openai=False, skip_list=skip_list)
     # detect old format and make compatible with new format
     if 'positional_embedding' in state_dict and not hasattr(model, 'positional_embedding'):
         state_dict = convert_to_custom_text_state_dict(state_dict)
@@ -123,6 +126,13 @@ def load_checkpoint(model, checkpoint_path, model_key="model|module|state_dict",
     elif 'visual.pos_embed' in state_dict:
         resize_evaclip_pos_embed(state_dict, model)
 
+    # Print out all keys and shapes in state_dict
+    print("State dict keys and shapes:")
+    for key, value in state_dict.items():
+        if isinstance(value, torch.Tensor):
+            print(f"{key}: {value.shape}")
+        else:
+            print(f"{key}: {type(value)}")
     # resize_clip_pos_embed(state_dict, model)
     incompatible_keys = model.load_state_dict(state_dict, strict=strict)
     logging.info(f"incompatible_keys.missing_keys: {incompatible_keys.missing_keys}")
@@ -281,11 +291,13 @@ def create_model(
                 checkpoint_path = pretrained
 
             if checkpoint_path:
+                # modify
                 logging.info(f'Loading pretrained {model_name} weights ({pretrained}).')
                 load_checkpoint(model,
                                checkpoint_path,
                                model_key="model|module|state_dict",
-                               strict=False
+                               strict=False,
+                               skip_list=skip_list
                                ) 
             else:
                 error_str = (
