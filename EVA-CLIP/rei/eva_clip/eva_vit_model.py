@@ -165,7 +165,7 @@ class Attention(nn.Module):
         # self.proj = nn.Linear(all_head_dim, all_head_dim)
         self.proj = nn.Linear(all_head_dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
-        self.xattn = xattn
+        self.xattn = 0
         self.xattn_drop = attn_drop
 
         self.rope = rope

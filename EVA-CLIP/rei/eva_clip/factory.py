@@ -93,14 +93,16 @@ def load_state_dict(checkpoint_path: str, map_location: str='cpu', model_key: st
                 state_dict = checkpoint
         if next(iter(state_dict.items()))[0].startswith('module'):
             state_dict = {k[7:]: v for k, v in state_dict.items()}
-    
+
+    todel = [] 
     for k in skip_list:
         for s_k in state_dict:
-            print(s_k, k)
             if k in s_k:
-                print(f"Removing key {s_k} from pretrained checkpoint")
-                del state_dict[s_k]
-    input()
+                #print(f"Removing key {s_k} from pretrained checkpoint")
+                todel.append(s_k)
+
+    for key in todel:
+        del state_dict[key]
 
     if os.getenv('RoPE') == '1':
         for k in list(state_dict.keys()):
@@ -126,13 +128,6 @@ def load_checkpoint(model, checkpoint_path, model_key="model|module|state_dict",
     elif 'visual.pos_embed' in state_dict:
         resize_evaclip_pos_embed(state_dict, model)
 
-    # Print out all keys and shapes in state_dict
-    print("State dict keys and shapes:")
-    for key, value in state_dict.items():
-        if isinstance(value, torch.Tensor):
-            print(f"{key}: {value.shape}")
-        else:
-            print(f"{key}: {type(value)}")
     # resize_clip_pos_embed(state_dict, model)
     incompatible_keys = model.load_state_dict(state_dict, strict=strict)
     logging.info(f"incompatible_keys.missing_keys: {incompatible_keys.missing_keys}")
