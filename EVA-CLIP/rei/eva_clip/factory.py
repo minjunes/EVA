@@ -281,6 +281,7 @@ def create_model(
             checkpoint_path = ''
             pretrained_cfg = get_pretrained_cfg(model_name, pretrained)
             if pretrained_cfg:
+                print(f"downloading to {cache_dir}")
                 checkpoint_path = download_pretrained(pretrained_cfg, cache_dir=cache_dir)
             elif os.path.exists(pretrained):
                 checkpoint_path = pretrained
