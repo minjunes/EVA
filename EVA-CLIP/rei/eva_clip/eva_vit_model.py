@@ -382,7 +382,7 @@ class EVAVisionTransformer(nn.Module):
         num_patches = self.patch_embed.num_patches
 
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
-        # self.mask_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
+        self.mask_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
         if use_abs_pos_emb:
             self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 1, embed_dim))
         else:
@@ -486,12 +486,20 @@ class EVAVisionTransformer(nn.Module):
         self.num_classes = num_classes
         self.head = nn.Linear(self.embed_dim, num_classes) if num_classes > 0 else nn.Identity()
 
-    def forward_features(self, x, return_all_features=False):
+    def forward_features(self, x, return_all_features=False, bool_mask_pos=None):
         
         x = self.patch_embed(x)
         batch_size, seq_len, _ = x.size()
 
         cls_tokens = self.cls_token.expand(batch_size, -1, -1)  # stole cls_tokens impl from Phil Wang, thanks
+
+        if bool_mask_pos is not None:
+            mask_token = self.mask_token.expand(batch_size, seq_len, -1)
+
+            # replace the masked visual tokens by mask_token
+            w = bool_masked_pos.unsqueeze(-1).type_as(mask_token)
+            x = x * (1 - w) + mask_token * w
+
         x = torch.cat((cls_tokens, x), dim=1)
         if self.pos_embed is not None:
             x = x + self.pos_embed
@@ -523,9 +531,9 @@ class EVAVisionTransformer(nn.Module):
                 return x[:, 0]
         return x
 
-    def forward(self, x, return_all_features=False):
+    def forward(self, x, return_all_features=False, bool_mask_pos=None):
         if return_all_features:
-            return self.forward_features(x, return_all_features)
-        x = self.forward_features(x)
+            return self.forward_features(x, return_all_features, bool_mask_pos=bool_mask_pos)
+        x = self.forward_features(x, bool_mask_pos=bool_mask_pos)
         x = self.head(x)
         return x

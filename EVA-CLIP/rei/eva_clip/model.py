@@ -298,8 +298,8 @@ class CustomCLIP(nn.Module):
     def no_weight_decay(self):
         return {'logit_scale'}
 
-    def encode_image(self, image, normalize: bool = False):
-        features = self.visual(image)
+    def encode_image(self, image, normalize: bool = False, bool_mask_pos=None):
+        features = self.visual(image, bool_mask_pos=bool_mask_pos)
         return F.normalize(features, dim=-1) if normalize else features
 
     def encode_text(self, text, normalize: bool = False):
